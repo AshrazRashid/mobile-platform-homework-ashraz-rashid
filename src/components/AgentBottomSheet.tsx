@@ -10,6 +10,7 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CommandRouter } from '../services/router/CommandRouter';
 import type { Command, CommandType } from '../types/commands';
 
@@ -97,6 +98,7 @@ function interpretUserMessage(text: string): {
 }
 
 export const AgentBottomSheet = () => {
+  const insets = useSafeAreaInsets();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [activity, setActivity] = useState<ActivityLine[]>([]);
@@ -161,7 +163,7 @@ export const AgentBottomSheet = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.sheet, { height: SHEET_H }]}
+      style={[styles.sheet, { height: SHEET_H + insets.bottom, paddingBottom: insets.bottom }]}
     >
       <Text style={styles.header}>Agent</Text>
 

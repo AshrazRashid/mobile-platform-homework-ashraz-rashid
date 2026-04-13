@@ -1,97 +1,29 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Agent-Driven React Native App
 
-# Getting Started
+## Architecture (TL;DR)
+This application employs an Agent-Driven UI architecture managed by a strictly controlled Command Router. The underlying concept relies on completely decoupling the conversational agent from direct UI state manipulation. The user inputs intent via the `AgentBottomSheet`, which is converted into discrete command payloads (e.g., `NAVIGATE`, `UPDATE_PREFERENCE`). These payloads are fed into a centralized middleware routing pipeline. The router performs structural validation, checks against an execution allowlist, and handles synchronization. For sensitive commands, the router intercepts execution to mandate explicit user confirmation via a UI dialog. Once cleared, commands mutate the application state. Concurrently, all actions route through a custom Native Module platform bridge, persisting transaction logs directly to the local filesystem.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Key decisions
+- **Centralized Command Router Pipeline**: Abstracted validation away from UI components, enforcing a strict bottleneck that prevents the agent from arbitrarily hallucinating state updates.
+- **Mandatory Validation Boundaries**: Explicitly modeled payloads to ensure components receive strongly-typed intents rather than unpredictable strings.
+- **Dynamic Confirmation Intercepts**: Configured the router to pause processing and mount UI prompts on restricted actions, strictly preserving user autonomy over data mutations. 
+- **Isolated Native Logging**: Selected a custom Native Module implementation to prove cross-platform JS-to-Native bridging, handling filesystem permissions securely apart from the shared UI layer.
+- **Contextual Agent Overlay (BottomSheet)**: Layered the conversational agent over the native navigation stack so users can directly observe UI and state changes executing in real-time behind the chat interface.
+- **Simulated Inference Layer**: Rejected live LLM dependencies in favor of deterministic mocking to guarantee test consistency and avoid network/API rate limiting during code reviews.
 
-## Step 1: Start Metro
+## Demo script
+1. **Launch App**: Open the specific build to view the generic Home screen.
+2. **Summon Agent**: Tap the floating action button to slide up the `AgentBottomSheet` conversational interface.
+3. **Execute Navigation**: Type command "Go to explore page". The text converts to a contextual `NAVIGATE` payload, clears router validation, and navigates the backdrop view.
+4. **Execute Safe Application**: Type "Show me only active items". The agent pushes a safe `FILTER_STATE` command, passing validation to passively update the main list.
+5. **Initiate High-Risk Mutation**: Request a destructive command like "Reset my user preferences".
+6. **Confirmation Intercept**: Observe the Command Router pause the payload execution and mount an explicit system-level confirmation dialog.
+7. **Complete and Validate**: Tap "Approve" against the dialog, allowing state modification to clear. Check native console logs to verify that the native filesystem bridge successfully recorded the full trace of that interaction.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Next steps
+- **Schema Enforcement**: Add strict `Zod` or `Yup` schema boundaries to the Command Router to automatically reject structurally invalid payload objects at the middleware level.
+- **UI State Context Injection**: Seamlessly feed the current application context window (current route, active filters) backwards into the agent prompt so it innately understands visual layout without explicit user explanation.
+- **Atomic Command Batching**: Extend the parser logic to process arrays of commands sequentially, allowing users to queue complex multi-step UI transitions (e.g., "Navigate to explore and enable dark mode").
 
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## AI disclosure
+AI tooling was utilized to accelerate boilerplate scaffolding, general syntax generation, and React component stubbing during the construction of this codebase. However, all critical architectural decisions—including the implementation of the Command Router separation, state validation techniques, explicit confirmation strategies, and the integration of the React Native platform bridge—were entirely manually reasoned and written by me to reflect intentional engineering tradeoffs.
