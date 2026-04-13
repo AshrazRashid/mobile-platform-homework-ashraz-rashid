@@ -10,7 +10,6 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CommandRouter } from '../services/router/CommandRouter';
 import type { Command, CommandType } from '../types/commands';
 
@@ -18,7 +17,9 @@ type ChatMsg = { id: string; role: 'user' | 'assistant'; text: string; at: numbe
 
 type ActivityLine = { id: string; text: string; at: number };
 
-const SHEET_H = Math.min(380, Dimensions.get('window').height * 0.44);
+const WINDOW_H = Dimensions.get('window').height;
+/** Cap sheet chrome so the tab bar + agent block stays a predictable fraction of the screen */
+const SHEET_MAX_H = Math.min(340, WINDOW_H * 0.38);
 
 const CAPABILITIES = `I can:
 • Navigate between Home, Explore, and Profile
@@ -98,7 +99,6 @@ function interpretUserMessage(text: string): {
 }
 
 export const AgentBottomSheet = () => {
-  const insets = useSafeAreaInsets();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [activity, setActivity] = useState<ActivityLine[]>([]);
@@ -163,95 +163,154 @@ export const AgentBottomSheet = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.sheet, { height: SHEET_H + insets.bottom, paddingBottom: insets.bottom }]}
+      style={styles.wrap}
     >
-      <Text style={styles.header}>Agent</Text>
+      <View style={[styles.sheet, { maxHeight: SHEET_MAX_H }]}>
+        <View style={styles.sheetTopAccent} />
+        <View style={styles.headerBlock}>
+          <Text style={styles.header}>Agent</Text>
+          <Text style={styles.subheader}>Structured commands · confirm to change state</Text>
+        </View>
 
-      <ScrollView style={styles.chatScroll} keyboardShouldPersistTaps="handled">
-        {messages.map(m => (
-          <View
-            key={m.id}
-            style={[styles.bubble, m.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant]}
-          >
-            <Text style={m.role === 'user' ? styles.bubbleTextUser : styles.bubbleTextAssistant}>{m.text}</Text>
-          </View>
-        ))}
-
-        {proposedCommand ? (
-          <View style={styles.proposalCard}>
-            <Text style={styles.proposalTitle}>Proposed action</Text>
-            <Text style={styles.proposalText}>
-              Update preference “{String(proposedCommand.payload.key)}” → {String(proposedCommand.payload.value)}
-            </Text>
-            <View style={styles.btnRow}>
-              <TouchableOpacity style={[styles.btn, styles.confirmBtn]} onPress={handleConfirm}>
-                <Text style={styles.btnText}>Confirm</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.btn, styles.rejectBtn]} onPress={handleReject}>
-                <Text style={styles.btnText}>Reject</Text>
-              </TouchableOpacity>
+        <ScrollView
+          style={styles.chatScroll}
+          contentContainerStyle={styles.chatContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {messages.map(m => (
+            <View
+              key={m.id}
+              style={[styles.bubble, m.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant]}
+            >
+              <Text style={m.role === 'user' ? styles.bubbleTextUser : styles.bubbleTextAssistant}>{m.text}</Text>
             </View>
+          ))}
+
+          {proposedCommand ? (
+            <View style={styles.proposalCard}>
+              <Text style={styles.proposalTitle}>Proposed action</Text>
+              <Text style={styles.proposalText}>
+                Update preference “{String(proposedCommand.payload.key)}” → {String(proposedCommand.payload.value)}
+              </Text>
+              <View style={styles.btnRow}>
+                <TouchableOpacity style={[styles.btn, styles.confirmBtn]} onPress={handleConfirm}>
+                  <Text style={styles.btnText}>Confirm</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.btn, styles.rejectBtn]} onPress={handleReject}>
+                  <Text style={styles.btnText}>Reject</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.activityCard}>
+            <Text style={styles.activityHeading}>Command activity</Text>
+            {activity.length === 0 ? (
+              <Text style={styles.muted}>No router events yet — send a message or run the demo.</Text>
+            ) : (
+              activity.map(a => (
+                <Text key={a.id} style={styles.activityLine}>
+                  {new Date(a.at).toLocaleTimeString()} · {a.text}
+                </Text>
+              ))
+            )}
           </View>
-        ) : null}
 
-        <Text style={styles.activityHeading}>Command activity</Text>
-        {activity.length === 0 ? (
-          <Text style={styles.muted}>No router events yet.</Text>
-        ) : (
-          activity.map(a => (
-            <Text key={a.id} style={styles.activityLine}>
-              {new Date(a.at).toLocaleTimeString()} · {a.text}
-            </Text>
-          ))
-        )}
+          <TouchableOpacity style={styles.mockBtn} onPress={mockPreferenceDemo} activeOpacity={0.85}>
+            <Text style={styles.mockBtnText}>Demo: dark mode proposal</Text>
+          </TouchableOpacity>
+        </ScrollView>
 
-        <TouchableOpacity style={styles.mockBtn} onPress={mockPreferenceDemo}>
-          <Text style={styles.mockBtnText}>Demo: dark mode proposal</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Message the agent…"
-          placeholderTextColor="#adb5bd"
-          value={input}
-          onChangeText={setInput}
-          onSubmitEditing={send}
-          returnKeyType="send"
-        />
-        <TouchableOpacity style={styles.sendBtn} onPress={send}>
-          <Text style={styles.sendBtnText}>Send</Text>
-        </TouchableOpacity>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Message the agent…"
+            placeholderTextColor={colors.placeholder}
+            value={input}
+            onChangeText={setInput}
+            onSubmitEditing={send}
+            returnKeyType="send"
+          />
+          <TouchableOpacity style={styles.sendBtn} onPress={send} activeOpacity={0.9}>
+            <Text style={styles.sendBtnText}>Send</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
 };
 
+const colors = {
+  bg: '#ffffff',
+  pageBg: '#f1f3f5',
+  text: '#212529',
+  textMuted: '#495057',
+  placeholder: '#868e96',
+  border: '#dee2e6',
+  accent: '#4c6ef5',
+};
+
 const styles = StyleSheet.create({
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 20,
+  wrap: {
+    width: '100%',
+    backgroundColor: colors.pageBg,
   },
-  header: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
-  chatScroll: { flex: 1 },
+  sheet: {
+    width: '100%',
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  sheetTopAccent: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#dee2e6',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  headerBlock: {
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  header: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  subheader: {
+    marginTop: 4,
+    fontSize: 12,
+    color: colors.placeholder,
+    textAlign: 'center',
+  },
+  chatScroll: {
+    maxHeight: SHEET_MAX_H - 130,
+    minHeight: 120,
+  },
+  chatContent: {
+    paddingBottom: 8,
+    flexGrow: 1,
+  },
   bubble: { maxWidth: '92%', padding: 10, borderRadius: 12, marginBottom: 8 },
-  bubbleUser: { alignSelf: 'flex-end', backgroundColor: '#4c6ef5' },
-  bubbleAssistant: { alignSelf: 'flex-start', backgroundColor: '#f1f3f5' },
-  bubbleTextUser: { color: '#fff' },
-  bubbleTextAssistant: { color: '#212529' },
+  bubbleUser: { alignSelf: 'flex-end', backgroundColor: colors.accent },
+  bubbleAssistant: { alignSelf: 'flex-start', backgroundColor: '#e7ebf0' },
+  bubbleTextUser: { color: '#fff', fontSize: 15, lineHeight: 20 },
+  bubbleTextAssistant: { color: colors.text, fontSize: 15, lineHeight: 20 },
   proposalCard: {
     padding: 14,
     backgroundColor: '#fff9db',
@@ -260,28 +319,51 @@ const styles = StyleSheet.create({
     borderColor: '#ffe066',
     marginBottom: 12,
   },
-  proposalTitle: { fontWeight: 'bold', color: '#1a1a1b', marginBottom: 6 },
-  proposalText: { color: '#495057', fontSize: 14, marginBottom: 12 },
+  proposalTitle: { fontWeight: '700', color: '#1a1a1b', marginBottom: 6 },
+  proposalText: { color: colors.textMuted, fontSize: 14, marginBottom: 12, lineHeight: 20 },
   btnRow: { flexDirection: 'row', gap: 10 },
   btn: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center' },
   confirmBtn: { backgroundColor: '#37b24d' },
   rejectBtn: { backgroundColor: '#fa5252' },
-  btnText: { color: '#fff', fontWeight: 'bold' },
-  activityHeading: { fontWeight: '700', marginTop: 8, marginBottom: 6 },
-  activityLine: { fontSize: 11, color: '#495057', marginBottom: 4 },
-  muted: { color: '#adb5bd', fontStyle: 'italic', marginBottom: 8 },
-  mockBtn: { marginVertical: 12, padding: 12, backgroundColor: '#e7f5ff', borderRadius: 8, alignItems: 'center' },
-  mockBtnText: { color: '#1864ab', fontWeight: '600' },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },
+  btnText: { color: '#fff', fontWeight: '700' },
+  activityCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    marginBottom: 10,
+  },
+  activityHeading: { fontWeight: '700', marginBottom: 8, color: colors.text, fontSize: 13 },
+  activityLine: { fontSize: 11, color: colors.textMuted, marginBottom: 4, lineHeight: 16 },
+  muted: { color: colors.placeholder, fontSize: 13, lineHeight: 18 },
+  mockBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#e7f5ff',
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#a5d8ff',
+  },
+  mockBtnText: { color: '#1864ab', fontWeight: '600', fontSize: 14 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 8, paddingBottom: 10 },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#dee2e6',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: '#fff',
   },
-  sendBtn: { backgroundColor: '#212529', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10 },
-  sendBtnText: { color: '#fff', fontWeight: '700' },
+  sendBtn: {
+    backgroundColor: '#212529',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+  },
+  sendBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
-import { AgentBottomSheet } from './src/components/AgentBottomSheet';
+import { AgentTabBar } from './src/components/AgentTabBar';
 import { FlyoutPanel } from './src/components/FlyoutPanel';
 import { CommandRouter } from './src/services/router/CommandRouter';
 import { navigationRef } from './src/navigation/navigationRef';
 import type { RootTabParamList } from './src/navigation/navigationRef';
 
 const Tab = createBottomTabNavigator();
+
+function renderAgentTabBar(props: BottomTabBarProps) {
+  return <AgentTabBar {...props} />;
+}
 
 const tabGlyphStyles = StyleSheet.create({
   icon: { fontSize: 20 },
@@ -68,17 +73,24 @@ const App = () => {
       <NavigationContainer ref={navigationRef}>
         <View style={styles.root}>
           <Tab.Navigator
+            tabBar={renderAgentTabBar}
             screenOptions={({ route }) => ({
               // eslint-disable-next-line react/no-unstable-nested-components -- @react-navigation/bottom-tabs passes render prop here
               tabBarIcon: ({ focused }: { focused: boolean }) => (
                 <TabIcon label={route.name} focused={focused} />
               ),
+              tabBarShowLabel: true,
+              tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
               tabBarActiveTintColor: '#4c6ef5',
-              tabBarInactiveTintColor: '#adb5bd',
+              tabBarInactiveTintColor: '#868e96',
               headerShown: false,
               tabBarStyle: {
-                paddingBottom: 5,
-                height: 60,
+                paddingTop: 6,
+                paddingBottom: 8,
+                minHeight: 56,
+                backgroundColor: '#ffffff',
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: '#e9ecef',
               },
             })}
           >
@@ -86,7 +98,6 @@ const App = () => {
             <Tab.Screen name="Explore" component={ExploreScreen} />
             <Tab.Screen name="Profile" component={ProfileScreen} />
           </Tab.Navigator>
-          <AgentBottomSheet />
           <FlyoutPanel visible={flyoutOpen} title={flyoutTitle} onClose={closeFlyout} />
         </View>
       </NavigationContainer>

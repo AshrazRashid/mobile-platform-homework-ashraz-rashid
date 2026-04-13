@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Switch, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommandRouter } from '../services/router/CommandRouter';
 import type { Command } from '../types/commands';
 
@@ -21,7 +22,7 @@ export const ProfileScreen = () => {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Profile</Text>
 
       <View style={styles.section}>
@@ -55,13 +56,13 @@ export const ProfileScreen = () => {
           )}
         </ScrollView>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold' },
+  container: { flex: 1, padding: 20, backgroundColor: '#eef1f4' },
+  title: { fontSize: 28, fontWeight: '800', color: '#212529', letterSpacing: -0.5 },
   section: { marginTop: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 10 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 10, backgroundColor: '#fff', borderRadius: 8 },

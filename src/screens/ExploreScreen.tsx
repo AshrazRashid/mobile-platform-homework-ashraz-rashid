@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommandRouter } from '../services/router/CommandRouter';
 import type { ExploreFilter } from '../types/commands';
 
@@ -50,7 +51,7 @@ export const ExploreScreen = () => {
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Explore</Text>
 
       <Text style={styles.sectionLabel}>Category</Text>
@@ -94,13 +95,13 @@ export const ExploreScreen = () => {
         )}
         keyExtractor={item => item.id}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
+  container: { flex: 1, padding: 20, backgroundColor: '#eef1f4' },
+  title: { fontSize: 28, fontWeight: '800', color: '#212529', marginBottom: 12, letterSpacing: -0.5 },
   sectionLabel: { fontSize: 13, color: '#868e96', marginBottom: 6, marginTop: 8 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   chip: {
